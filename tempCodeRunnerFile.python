@@ -1,0 +1,20 @@
+import tensorflow as tf
+
+def check_for_gpu():
+    # List physical devices available
+    physical_devices = tf.config.list_physical_devices()
+    
+    # Check for GPUs in the list
+    gpu_devices = [device for device in physical_devices if device.device_type == 'GPU']
+    
+    if gpu_devices:
+        # If GPUs are found, print the devices
+        print(f"Found {len(gpu_devices)} GPU(s):")
+        for gpu in gpu_devices:
+            print(f"  - {gpu.name}")
+    else:
+        # If no GPUs are found, print a message
+        print("No GPU found.")
+
+# Run the function to check for GPU
+check_for_gpu()

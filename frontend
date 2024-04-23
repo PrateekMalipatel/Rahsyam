@@ -1,0 +1,64 @@
+from flask import Flask, request, render_template
+from werkzeug.utils import secure_filename
+import os
+import cv2
+import numpy as np
+from keras.models import load_model
+
+# Define the Flask app
+app = Flask(__name__)
+app.config['UPLOAD_FOLDER'] = './uploads'
+
+# Load your deepfake detection model
+model = load_model('C:\\Users\\91901\\Downloads\\DeepFake-Detect-master\\DeepFake-Detect-master\\03-train_cnn.py.h5')
+
+# Define allowed file types
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
+
+def allowed_file(filename):
+    # Check if the file extension is allowed
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+# Route for the home page
+@app.route('/')
+def home():
+    return render_template('index.html')
+
+# Route to handle image upload
+@app.route('/upload', methods=['POST'])
+def upload_image():
+    if 'file' not in request.files:
+        return 'No file part in the request', 400
+    
+    file = request.files['file']
+    
+    # Check if the file is allowed and has a valid filename
+    if file.filename == '' or not allowed_file(file.filename):
+        return 'Invalid file format', 400
+    
+    # Save the file to the uploads directory
+    filename = secure_filename(file.filename)
+    file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    file.save(file_path)
+    
+    # Load the image and preprocess it
+    image = cv2.imread(file_path)
+    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    image = cv2.resize(image, (128, 128))  # Resize as per your model's input size
+    image = np.expand_dims(image, axis=0)
+    
+    # Make a prediction using the model
+    prediction = model.predict(image)
+    
+    # Determine if the image is real or fake based on the model's output
+    if prediction[0][0] > 0.5:
+        result = 'Fake'
+    else:
+        result = 'Real'
+    
+    # Display the result
+    return f'The uploaded image is {result}'
+
+# Run the app
+if __name__ == '__main__':
+    app.run()
